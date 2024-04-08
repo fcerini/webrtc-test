@@ -10,11 +10,11 @@ window.createSession = isPublisher => {
       }
     ]
   })
+
   pc.oniceconnectionstatechange = e => log(pc.iceConnectionState)
+
   pc.onicecandidate = event => {
-    if (event.candidate === null) {
-      document.getElementById('localSessionDescription').value = btoa(JSON.stringify(pc.localDescription))
-    }
+    console.log(event)
   }
 
   if (isPublisher) {
@@ -41,37 +41,30 @@ window.createSession = isPublisher => {
   }
 
   window.startSession = () => {
-    const sd = document.getElementById('remoteSessionDescription').value
-    if (sd === '') {
-      return alert('Session Description must not be empty')
-    }
 
-    try {
-      pc.setRemoteDescription(JSON.parse(atob(sd)))
-    } catch (e) {
-      alert(e)
-    }
+    fetch('/SDP', {
+      method: "POST",
+      body: btoa(JSON.stringify(pc.localDescription)),
+      headers: { "Content-type": "application/json; charset=UTF-8" }
+    })
+      .then(response => {
+        console.log(response)
+        try {
+          pc.setRemoteDescription(JSON.parse(atob(response)))
+        } catch (e) {
+          alert(e)
+        }
+      })
+      .catch(err => console.log('ERR', err)); // Capturar errores
+
   }
 
-  window.copySDP = () => {
-    const browserSDP = document.getElementById('localSessionDescription')
-
-    browserSDP.focus()
-    browserSDP.select()
-
-    try {
-      const successful = document.execCommand('copy')
-      const msg = successful ? 'successful' : 'unsuccessful'
-      log('Copying SDP was ' + msg)
-    } catch (err) {
-      log('Unable to copy SDP ' + err)
-    }
+  window.restartServer = () => {
+    // Solicitud GET (Request).
+    fetch('/Restart')
+      // Exito
+      .then(response => response.json())  // convertir a json
+      .then(json => console.log(json))    //imprimir los datos en la consola
+      .catch(err => console.log('ERR', err)); // Capturar errores
   }
-
-  const btns = document.getElementsByClassName('createSessionButton')
-  for (let i = 0; i < btns.length; i++) {
-    btns[i].style = 'display: none'
-  }
-
-  document.getElementById('signalingContainer').style = 'display: block'
 }
