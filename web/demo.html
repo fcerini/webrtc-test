@@ -4,34 +4,22 @@
 <head>
   <meta charset="UTF-8">
   <title>WebRTC test</title>
-  <link rel="stylesheet" href="./demo.css">
 </head>
 
 <body>
+  <button onclick="window.createSession(true)"> Publish a Broadcast </button>
+  <button onclick="window.createSession(false)"> Join a Broadcast </button>
+  <button onclick="window.restartServer()"> Restart Demo </button>
+  <br />
 
-  <div id="signalingContainer" style="display: none">
-    Browser base64 Session Description<br />
-    <textarea id="localSessionDescription" readonly="true"></textarea> <br />
-    <button onclick="window.copySDP()">
-      Copy browser SDP to clipboard
-    </button>
-    <br />
-    <br />
+  <br />
 
-    Golang base64 Session Description<br />
-    <textarea id="remoteSessionDescription"></textarea> <br />
-    <button onclick="window.startSession()"> Start Session </button><br />
-  </div>
+  <button onclick="window.startSession()"> Start Session </button><br />
 
   <br />
 
   Video<br />
   <video id="video1" width="160" height="120" autoplay muted></video> <br />
-
-  <button class="createSessionButton" onclick="window.createSession(true)"> Publish a Broadcast </button>
-  <button class="createSessionButton" onclick="window.createSession(false)"> Join a Broadcast </button><br />
-
-  <br />
 
   Logs<br />
   <div id="logs"></div>
