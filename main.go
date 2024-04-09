@@ -3,30 +3,45 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/intervalpli"
 	"github.com/pion/webrtc/v4"
 )
 
-var gloSdpChan chan string
-var gloPort = ":8088"
+var APP AppConfig
 
-func main() { // nolint:gocognit
-	gloSdpChan = make(chan string)
+var gloRemoteSDP chan string
+var gloLocalSDP chan string
 
-	log.Println("WebRTC server iniciado en " + gloPort)
+// se asigna en build.sh
+var GIT string
+
+func main() {
+	if len(os.Args) > 1 && os.Args[1] == "-v" {
+		fmt.Println(GIT)
+		return
+	}
+
+	gloRemoteSDP = make(chan string)
+	gloLocalSDP = make(chan string)
+
+	APP.Load()
+
+	log.Println("WebRTC server iniciado en " + APP.HttpAddr)
 
 	// HTTP + ROUTER
 	go func() {
 		http.HandleFunc("/SDP", ApiSDP)
 		http.HandleFunc("/Restart", ApiRestart)
-		http.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir("./web"))))
+		http.Handle("/", http.FileServer(http.Dir("./web")))
 
-		err := http.ListenAndServe(gloPort, nil)
+		err := http.ListenAndServe(APP.HttpAddr, nil)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -34,8 +49,7 @@ func main() { // nolint:gocognit
 
 	// Everything below is the Pion WebRTC API, thanks for using it ❤️.
 	offer := webrtc.SessionDescription{}
-	Decode(<-gloSdpChan, &offer)
-	log.Println("Recibido primer SDP")
+	Decode(<-gloRemoteSDP, &offer)
 
 	peerConnectionConfig := webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
@@ -139,15 +153,14 @@ func main() { // nolint:gocognit
 	<-gatherComplete
 
 	// Get the LocalDescription and take it to base64 so we can paste in browser
-	log.Println(Encode(*peerConnection.LocalDescription()))
+	local := Encode(*peerConnection.LocalDescription())
+	gloLocalSDP <- local
 
 	localTrack := <-localTrackChan
 	for {
-		log.Println("")
-		log.Println("Curl an base64 SDP to start sendonly peer connection")
 
 		recvOnlyOffer := webrtc.SessionDescription{}
-		Decode(<-gloSdpChan, &recvOnlyOffer)
+		Decode(<-gloRemoteSDP, &recvOnlyOffer)
 
 		// Create a new PeerConnection
 		peerConnection, err := webrtc.NewPeerConnection(peerConnectionConfig)
@@ -199,6 +212,7 @@ func main() { // nolint:gocognit
 		<-gatherComplete
 
 		// Get the LocalDescription and take it to base64 so we can paste in browser
-		log.Println(Encode(*peerConnection.LocalDescription()))
+		local := Encode(*peerConnection.LocalDescription())
+		gloLocalSDP <- local
 	}
 }

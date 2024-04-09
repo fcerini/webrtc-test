@@ -15,8 +15,11 @@ import (
 
 func ApiSDP(w http.ResponseWriter, r *http.Request) {
 	body, _ := io.ReadAll(r.Body)
-	w.Write([]byte(`{"Status": "OK"}`))
-	gloSdpChan <- string(body)
+	log.Println("Recibido SDP remoto")
+	gloRemoteSDP <- string(body)
+
+	w.Write([]byte(<-gloLocalSDP))
+	log.Println("Enviado SDP local")
 
 }
 
