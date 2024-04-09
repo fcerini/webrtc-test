@@ -42,15 +42,17 @@ window.createSession = isPublisher => {
 
   window.startSession = () => {
 
-    fetch('/SDP', {
+    fetch('./SDP', {
       method: "POST",
       body: btoa(JSON.stringify(pc.localDescription)),
       headers: { "Content-type": "application/json; charset=UTF-8" }
     })
-      .then(response => {
-        console.log(response)
+    .then(response => response.text())
+      .then(text => {
+        aux = text
+        console.log(aux)
         try {
-          pc.setRemoteDescription(JSON.parse(atob(response)))
+          pc.setRemoteDescription(JSON.parse(atob(aux)))
         } catch (e) {
           alert(e)
         }
@@ -61,7 +63,7 @@ window.createSession = isPublisher => {
 
   window.restartServer = () => {
     // Solicitud GET (Request).
-    fetch('/Restart')
+    fetch('./Restart')
       // Exito
       .then(response => response.json())  // convertir a json
       .then(json => console.log(json))    //imprimir los datos en la consola
